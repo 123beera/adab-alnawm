@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ============================================================
@@ -8,8 +8,8 @@ const steps = [
   {
     id: 1,
     title: "الوضوء",
-    description: "نتوضأ قبل النوم ونطهّر أنفسنا",
-    detail: "قال النبي ﷺ: «إذا أتيتَ مضجعك فتوضأ وضوءك للصلاة»",
+    description: "نتوضأ ونغسل يدينا ووجهنا",
+    detail: "قال النبي ﷺ: «إذا أتيتَ مضجعك فتوضأ»",
     image: "/manus-storage/char_wudu_23368fd9.png",
     color: "#4FC3F7",
     bgGlow: "rgba(79, 195, 247, 0.2)",
@@ -19,8 +19,8 @@ const steps = [
   {
     id: 2,
     title: "السواك",
-    description: "نستخدم السواك لتنظيف أسناننا",
-    detail: "السواك مطهرة للفم ومرضاة للرب",
+    description: "ننظّف أسناننا بالسواك",
+    detail: "السواك مطهرة للفم",
     image: "/manus-storage/char_siwak_bf06d5cf.png",
     color: "#A5D6A7",
     bgGlow: "rgba(165, 214, 167, 0.2)",
@@ -29,9 +29,9 @@ const steps = [
   },
   {
     id: 3,
-    title: "قراءة آية الكرسي",
-    description: "نقرأ آية الكرسي قبل النوم",
-    detail: "من قرأ آية الكرسي حين يأوي إلى فراشه لم يزل عليه من الله حافظ",
+    title: "آية الكرسي",
+    description: "نقرأ آية الكرسي من القرآن",
+    detail: "من قرأها حفظه الله طول الليل",
     image: "/manus-storage/char_quran_92c052e0.png",
     color: "#CE93D8",
     bgGlow: "rgba(206, 147, 216, 0.2)",
@@ -41,7 +41,7 @@ const steps = [
   {
     id: 4,
     title: "دعاء النوم",
-    description: "نقول دعاء النوم بخشوع",
+    description: "نرفع يدينا ونقول دعاء النوم",
     detail: "«اللهم باسمك أموت وأحيا»",
     image: "/manus-storage/char_dua_fbdcd331.png",
     color: "#FFD54F",
@@ -51,8 +51,8 @@ const steps = [
   },
   {
     id: 5,
-    title: "إطفاء الأنوار",
-    description: "نطفئ الأنوار قبل النوم",
+    title: "نطفئ الضوء",
+    description: "نضغط على المفتاح ونطفئ الضوء",
     detail: "قال النبي ﷺ: «أطفئوا المصابيح إذا رقدتم»",
     image: "/manus-storage/char_lights_29a21d78.png",
     color: "#80DEEA",
@@ -62,9 +62,9 @@ const steps = [
   },
   {
     id: 6,
-    title: "النوم على الجانب الأيمن",
-    description: "ننام على جانبنا الأيمن",
-    detail: "كان النبي ﷺ إذا أوى إلى فراشه نام على شقه الأيمن",
+    title: "ننام على اليمين",
+    description: "ننام على جانبنا الأيمن مثل النبي ﷺ",
+    detail: "كان النبي ﷺ ينام على شقه الأيمن",
     image: "/manus-storage/char_sleep_731b1194.png",
     color: "#F48FB1",
     bgGlow: "rgba(244, 143, 177, 0.2)",
@@ -74,8 +74,8 @@ const steps = [
   {
     id: 7,
     title: "بسم الله",
-    description: "نقول بسم الله قبل النوم",
-    detail: "نذكر الله ونستعين به في كل أمورنا",
+    description: "نقول بسم الله ونذكر الله",
+    detail: "نذكر الله في كل وقت",
     image: "/manus-storage/char_bismillah_41c644bc.png",
     color: "#FFCC80",
     bgGlow: "rgba(255, 204, 128, 0.2)",
@@ -85,7 +85,17 @@ const steps = [
 ];
 
 // ============================================================
-// مكوّن النجوم المتحركة في الخلفية
+// بيانات لعبة الترتيب - 4 خطوات فقط مناسبة لروضة أولى
+// ============================================================
+const gameSteps = [
+  { id: 1, emoji: "💧", label: "الوضوء",      color: "#4FC3F7" },
+  { id: 2, emoji: "🌿", label: "السواك",      color: "#A5D6A7" },
+  { id: 3, emoji: "🤲", label: "دعاء النوم",  color: "#FFD54F" },
+  { id: 4, emoji: "😴", label: "ننام على اليمين", color: "#F48FB1" },
+];
+
+// ============================================================
+// مكوّن النجوم المتحركة
 // ============================================================
 function StarField() {
   const stars = Array.from({ length: 60 }, (_, i) => ({
@@ -96,7 +106,6 @@ function StarField() {
     delay: Math.random() * 4,
     duration: Math.random() * 3 + 2,
   }));
-
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden">
       {stars.map((star) => (
@@ -117,18 +126,17 @@ function StarField() {
 }
 
 // ============================================================
-// مكوّن الكونفيتي عند إتمام خطوة
+// مكوّن الكونفيتي
 // ============================================================
 function Confetti({ active }: { active: boolean }) {
   if (!active) return null;
-  const pieces = Array.from({ length: 20 }, (_, i) => ({
+  const pieces = Array.from({ length: 24 }, (_, i) => ({
     id: i,
     x: Math.random() * 100,
-    color: ["#F5C842", "#4FC3F7", "#A5D6A7", "#CE93D8", "#F48FB1"][Math.floor(Math.random() * 5)],
+    color: ["#F5C842","#4FC3F7","#A5D6A7","#CE93D8","#F48FB1"][Math.floor(Math.random() * 5)],
     delay: Math.random() * 0.5,
     size: Math.random() * 10 + 6,
   }));
-
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-50">
       {pieces.map((p) => (
@@ -150,22 +158,267 @@ function Confetti({ active }: { active: boolean }) {
 }
 
 // ============================================================
+// لعبة الترتيب بالسحب والإفلات
+// ============================================================
+function SortingGame({ onDone }: { onDone: () => void }) {
+  // نخلط الخطوات عشوائياً مرة واحدة
+  const [shuffled] = useState(() => [...gameSteps].sort(() => Math.random() - 0.5));
+  const [slots, setSlots] = useState<(typeof gameSteps[0] | null)[]>([null, null, null, null]);
+  const [remaining, setRemaining] = useState(shuffled);
+  const [dragItem, setDragItem] = useState<typeof gameSteps[0] | null>(null);
+  const [dragSource, setDragSource] = useState<"bank" | number>("bank");
+  const [wrongSlot, setWrongSlot] = useState<number | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [confetti, setConfetti] = useState(false);
+
+  // تحقق من الإجابة
+  const checkAnswer = useCallback((newSlots: (typeof gameSteps[0] | null)[]) => {
+    const correct = newSlots.every((s, i) => s?.id === gameSteps[i].id);
+    if (correct && newSlots.every(Boolean)) {
+      setConfetti(true);
+      setTimeout(() => { setConfetti(false); setShowSuccess(true); }, 1200);
+    }
+  }, []);
+
+  // بدء السحب من البنك
+  const onDragStartBank = (item: typeof gameSteps[0]) => {
+    setDragItem(item);
+    setDragSource("bank");
+  };
+
+  // بدء السحب من خانة
+  const onDragStartSlot = (item: typeof gameSteps[0], idx: number) => {
+    setDragItem(item);
+    setDragSource(idx);
+  };
+
+  // الإفلات في خانة
+  const onDropSlot = (idx: number) => {
+    if (!dragItem) return;
+    const newSlots = [...slots];
+    const newRemaining = [...remaining];
+
+    // إذا كانت الخانة ممتلئة، نُعيد محتواها للبنك
+    if (newSlots[idx]) {
+      newRemaining.push(newSlots[idx]!);
+    }
+    // إذا كان المصدر خانة أخرى، نفرّغها
+    if (typeof dragSource === "number") {
+      newSlots[dragSource] = null;
+    } else {
+      // إزالة من البنك
+      const ri = newRemaining.findIndex((r) => r.id === dragItem.id);
+      if (ri !== -1) newRemaining.splice(ri, 1);
+    }
+    newSlots[idx] = dragItem;
+    setSlots(newSlots);
+    setRemaining(newRemaining);
+    setDragItem(null);
+    checkAnswer(newSlots);
+  };
+
+  // الإفلات في البنك
+  const onDropBank = () => {
+    if (!dragItem || dragSource === "bank") return;
+    const newSlots = [...slots];
+    newSlots[dragSource as number] = null;
+    setSlots(newSlots);
+    setRemaining((prev) => [...prev, dragItem]);
+    setDragItem(null);
+  };
+
+  // للموبايل: نقر للتحديد ثم نقر للوضع
+  const [selected, setSelected] = useState<{ item: typeof gameSteps[0]; source: "bank" | number } | null>(null);
+
+  const handleBankTap = (item: typeof gameSteps[0]) => {
+    if (selected) {
+      // إذا كان المحدد من خانة، نُعيده ونضع الجديد
+      if (typeof selected.source === "number") {
+        const newSlots = [...slots];
+        newSlots[selected.source as number] = null;
+        setSlots(newSlots);
+        setRemaining((prev) => [...prev, selected.item]);
+      }
+      setSelected(null);
+    } else {
+      setSelected({ item, source: "bank" });
+    }
+  };
+
+  const handleSlotTap = (idx: number) => {
+    if (selected) {
+      const newSlots = [...slots];
+      const newRemaining = [...remaining];
+      if (newSlots[idx]) newRemaining.push(newSlots[idx]!);
+      if (typeof selected.source === "number") {
+        newSlots[selected.source as number] = null;
+      } else {
+        const ri = newRemaining.findIndex((r) => r.id === selected.item.id);
+        if (ri !== -1) newRemaining.splice(ri, 1);
+      }
+      newSlots[idx] = selected.item;
+      setSlots(newSlots);
+      setRemaining(newRemaining);
+      setSelected(null);
+      checkAnswer(newSlots);
+    } else if (slots[idx]) {
+      setSelected({ item: slots[idx]!, source: idx });
+      const newSlots = [...slots];
+      newSlots[idx] = null;
+      setSlots(newSlots);
+    }
+  };
+
+  if (showSuccess) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="glass-card p-8 max-w-md w-full text-center"
+      >
+        <div className="text-7xl mb-3 animate-float">🏆</div>
+        <h2 className="text-4xl font-black mb-2" style={{ fontFamily: "Tajawal, sans-serif", color: "#F5C842" }}>
+          يا بطل! 🌟
+        </h2>
+        <p className="text-white/80 text-xl mb-6" style={{ fontFamily: "Tajawal, sans-serif" }}>
+          رتّبت الخطوات صح!
+        </p>
+        <div className="flex gap-3 justify-center mb-6">
+          {gameSteps.map((s) => (
+            <div key={s.id} className="text-4xl">{s.emoji}</div>
+          ))}
+        </div>
+        <button className="gold-btn px-8 py-4 text-xl w-full" onClick={onDone} style={{ fontFamily: "Tajawal, sans-serif" }}>
+          🎉 انتهينا!
+        </button>
+      </motion.div>
+    );
+  }
+
+  return (
+    <>
+      <Confetti active={confetti} />
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-card p-6 md:p-8 max-w-lg w-full relative z-10"
+      >
+        {/* العنوان */}
+        <div className="text-center mb-6">
+          <div className="text-4xl mb-2">🎮</div>
+          <h2 className="text-2xl md:text-3xl font-black text-white" style={{ fontFamily: "Tajawal, sans-serif" }}>
+            رتّب الخطوات!
+          </h2>
+          <p className="text-white/60 text-base mt-1" style={{ fontFamily: "Tajawal, sans-serif" }}>
+            اضغط على الصورة ثم اضغط على المكان الصح 👇
+          </p>
+        </div>
+
+        {/* الخانات الفارغة */}
+        <div className="grid grid-cols-4 gap-2 mb-6">
+          {slots.map((slot, idx) => (
+            <div
+              key={idx}
+              onClick={() => handleSlotTap(idx)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => onDropSlot(idx)}
+              className="relative rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-200"
+              style={{
+                height: "90px",
+                background: slot ? slot.color + "22" : "rgba(255,255,255,0.05)",
+                border: slot
+                  ? `2px solid ${slot.color}`
+                  : selected
+                  ? "2px dashed rgba(245,200,66,0.7)"
+                  : "2px dashed rgba(255,255,255,0.2)",
+                boxShadow: slot ? `0 0 12px ${slot.color}44` : "none",
+                transform: selected && !slot ? "scale(1.04)" : "scale(1)",
+              }}
+            >
+              {/* رقم الخانة */}
+              <span
+                className="absolute top-1 right-2 text-xs font-bold opacity-50"
+                style={{ fontFamily: "Tajawal, sans-serif", color: slot ? slot.color : "#fff" }}
+              >
+                {["١","٢","٣","٤"][idx]}
+              </span>
+              {slot ? (
+                <>
+                  <span className="text-3xl">{slot.emoji}</span>
+                  <span className="text-xs text-white/80 mt-1 text-center px-1" style={{ fontFamily: "Tajawal, sans-serif", fontSize: "10px" }}>
+                    {slot.label}
+                  </span>
+                </>
+              ) : (
+                <span className="text-2xl opacity-20">؟</span>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* بنك البطاقات */}
+        <div
+          className="rounded-2xl p-4 mb-2"
+          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={onDropBank}
+        >
+          <p className="text-white/40 text-xs text-center mb-3" style={{ fontFamily: "Tajawal, sans-serif" }}>
+            اختر من هنا
+          </p>
+          <div className="flex flex-wrap gap-3 justify-center min-h-[70px]">
+            {remaining.map((item) => (
+              <motion.div
+                key={item.id}
+                draggable
+                onDragStart={() => onDragStartBank(item)}
+                onClick={() => handleBankTap(item)}
+                whileTap={{ scale: 0.92 }}
+                whileHover={{ scale: 1.08 }}
+                className="rounded-2xl flex flex-col items-center justify-center cursor-pointer select-none"
+                style={{
+                  width: "72px",
+                  height: "72px",
+                  background: item.color + "22",
+                  border: selected?.item.id === item.id
+                    ? `3px solid #F5C842`
+                    : `2px solid ${item.color}`,
+                  boxShadow: selected?.item.id === item.id
+                    ? "0 0 16px rgba(245,200,66,0.6)"
+                    : `0 0 8px ${item.color}44`,
+                }}
+              >
+                <span className="text-3xl">{item.emoji}</span>
+                <span className="text-white/70 mt-1 text-center" style={{ fontFamily: "Tajawal, sans-serif", fontSize: "9px" }}>
+                  {item.label}
+                </span>
+              </motion.div>
+            ))}
+            {remaining.length === 0 && (
+              <p className="text-white/30 text-sm self-center" style={{ fontFamily: "Tajawal, sans-serif" }}>
+                وضعت كل البطاقات ✓
+              </p>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </>
+  );
+}
+
+// ============================================================
 // الصفحة الرئيسية
 // ============================================================
 export default function Home() {
-  const [currentStep, setCurrentStep] = useState(0); // 0 = شاشة البداية
+  // screen: "intro" | "steps" | "game" | "finish"
+  const [screen, setScreen] = useState<"intro" | "steps" | "game" | "finish">("intro");
+  const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [showFinish, setShowFinish] = useState(false);
 
   const step = steps[currentStep - 1];
 
   const handleNext = () => {
-    if (currentStep === 0) {
-      setCurrentStep(1);
-      return;
-    }
-    // mark current as done
     if (!completedSteps.includes(currentStep)) {
       setCompletedSteps((prev) => [...prev, currentStep]);
       setShowConfetti(true);
@@ -174,7 +427,7 @@ export default function Home() {
     if (currentStep < steps.length) {
       setCurrentStep((s) => s + 1);
     } else {
-      setShowFinish(true);
+      setScreen("game");
     }
   };
 
@@ -183,9 +436,9 @@ export default function Home() {
   };
 
   const handleRestart = () => {
-    setCurrentStep(0);
+    setScreen("intro");
+    setCurrentStep(1);
     setCompletedSteps([]);
-    setShowFinish(false);
   };
 
   return (
@@ -202,8 +455,9 @@ export default function Home() {
       </div>
 
       <AnimatePresence mode="wait">
+
         {/* ===== شاشة البداية ===== */}
-        {currentStep === 0 && !showFinish && (
+        {screen === "intro" && (
           <motion.div
             key="intro"
             initial={{ opacity: 0, y: 40 }}
@@ -223,10 +477,8 @@ export default function Home() {
               تعلّم معنا كيف ينام المسلم الصغير
             </p>
             <p className="text-white/50 text-base mb-8" style={{ fontFamily: "Tajawal, sans-serif" }}>
-              ٧ خطوات رائعة قبل النوم ✨
+              ٧ خطوات قبل النوم ✨
             </p>
-
-            {/* معاينة الخطوات */}
             <div className="grid grid-cols-7 gap-1 mb-8">
               {steps.map((s) => (
                 <div
@@ -238,19 +490,18 @@ export default function Home() {
                 </div>
               ))}
             </div>
-
             <button
               className="gold-btn px-10 py-4 text-xl w-full"
-              onClick={handleNext}
+              onClick={() => setScreen("steps")}
               style={{ fontFamily: "Tajawal, sans-serif" }}
             >
-              ابدأ الرحلة 🚀
+              يلّا نبدأ! 🚀
             </button>
           </motion.div>
         )}
 
-        {/* ===== شاشة الخطوة ===== */}
-        {currentStep > 0 && !showFinish && step && (
+        {/* ===== شاشة الخطوات ===== */}
+        {screen === "steps" && step && (
           <motion.div
             key={`step-${currentStep}`}
             initial={{ opacity: 0, x: -60 }}
@@ -278,7 +529,7 @@ export default function Home() {
               ))}
             </div>
 
-            {/* رقم الخطوة */}
+            {/* رقم الخطوة والعنوان */}
             <div className="flex items-center gap-3 mb-4">
               <div
                 className="w-12 h-12 rounded-full flex items-center justify-center text-2xl font-black"
@@ -341,14 +592,28 @@ export default function Home() {
                 onClick={handleNext}
                 style={{ fontFamily: "Tajawal, sans-serif" }}
               >
-                {currentStep === steps.length ? "🎉 أنهيت!" : "التالي →"}
+                {currentStep === steps.length ? "🎮 العب!" : "التالي →"}
               </button>
             </div>
           </motion.div>
         )}
 
+        {/* ===== شاشة اللعبة ===== */}
+        {screen === "game" && (
+          <motion.div
+            key="game"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="relative z-10 w-full flex justify-center"
+          >
+            <SortingGame onDone={() => setScreen("finish")} />
+          </motion.div>
+        )}
+
         {/* ===== شاشة الإنهاء ===== */}
-        {showFinish && (
+        {screen === "finish" && (
           <motion.div
             key="finish"
             initial={{ opacity: 0, scale: 0.8 }}
@@ -361,13 +626,11 @@ export default function Home() {
               className="text-4xl font-black mb-3"
               style={{ fontFamily: "Tajawal, sans-serif", color: "#F5C842", textShadow: "0 0 30px rgba(245,200,66,0.5)" }}
             >
-              أحسنت! 🌟
+              يا بطل! 🌟
             </h2>
             <p className="text-white/80 text-xl mb-6" style={{ fontFamily: "Tajawal, sans-serif" }}>
-              تعلّمت جميع آداب النوم الإسلامية
+              تعلّمت كل آداب النوم وفزت باللعبة!
             </p>
-
-            {/* ملخص الخطوات */}
             <div className="grid grid-cols-1 gap-2 mb-8 text-right">
               {steps.map((s) => (
                 <div
@@ -383,16 +646,16 @@ export default function Home() {
                 </div>
               ))}
             </div>
-
             <button
               className="gold-btn px-10 py-4 text-xl w-full"
               onClick={handleRestart}
               style={{ fontFamily: "Tajawal, sans-serif" }}
             >
-              🔄 أعد من البداية
+              🔄 العب مرة ثانية
             </button>
           </motion.div>
         )}
+
       </AnimatePresence>
     </div>
   );
